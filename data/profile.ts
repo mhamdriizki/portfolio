@@ -43,7 +43,7 @@ export const profile: Profile = {
     },
     {
       company: "BCA (Bank Central Asia)",
-      role: "Sr IT Specialist",
+      role: "IT Specialist",
       period: "2020 - Present",
       description: "Contributing to the development and maintenance of core banking systems and digital services."
     }

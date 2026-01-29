@@ -1,6 +1,6 @@
 'use client';
 
-import { Activity } from "@/lib/types";
+import { Activity } from "@/lib/api";
 import Link from "next/link";
 import { Calendar, ArrowUpRight } from "lucide-react";
 
@@ -9,7 +9,8 @@ interface ActivityItemProps {
 }
 
 export default function ActivityItem({ activity }: ActivityItemProps) {
-  const formattedDate = new Date(activity.date).toLocaleDateString('en-US', {
+  const dateString = activity.date || activity.CreatedAt || new Date().toISOString();
+  const formattedDate = new Date(dateString).toLocaleDateString('en-US', {
     month: 'long',
     year: 'numeric',
     day: 'numeric'
@@ -43,8 +44,8 @@ export default function ActivityItem({ activity }: ActivityItemProps) {
             activity.title
           )}
         </h4>
-        <p className="text-muted-foreground text-sm leading-relaxed">
-          {activity.description}
+        <p className="text-muted-foreground text-sm leading-relaxed line-clamp-2">
+          {activity.description.replace(/<[^>]*>?/gm, '')}
         </p>
       </div>
     </div>

@@ -3,21 +3,26 @@
 import { useState, useEffect } from "react";
 import ActivityItem from "@/components/ui/ActivityItem";
 import Section from "@/components/ui/Section";
-import { activities as initialActivities } from "@/data/activities";
-import { Activity } from "@/lib/types";
 import Link from "next/link";
+import { api, Activity } from "@/lib/api";
 
 export default function ActivitiesPage() {
   const [activities, setActivities] = useState<Activity[]>([]);
   const [loading, setLoading] = useState(true);
 
-  // Simulate loading delay for skeleton demonstration
   useEffect(() => {
-    const timer = setTimeout(() => {
-      setActivities(initialActivities);
-      setLoading(false);
-    }, 1000); // 1 second mock loading
-    return () => clearTimeout(timer);
+    const loadActivities = async () => {
+      try {
+        const data = await api.getActivities();
+        // Map if necessary, but api.ts Project interface matches component expectations mostly
+        setActivities(data);
+      } catch (error) {
+        console.error("Failed to fetch activities", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadActivities();
   }, []);
 
   return (
@@ -47,13 +52,12 @@ export default function ActivitiesPage() {
           ))
         ) : (
           activities.map((activity) => (
-            <Link 
-              key={activity.id} 
-              href={`/activities/${activity.id}`}
+            <div 
+              key={activity.ID} 
               className="block cursor-pointer transition-opacity hover:opacity-80"
             >
               <ActivityItem activity={activity} />
-            </Link>
+            </div>
           ))
         )}
       </div>

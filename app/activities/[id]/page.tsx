@@ -1,80 +1,92 @@
-import Section from "@/components/ui/Section";
-import { activities } from "@/data/activities";
-import { notFound } from "next/navigation";
-import Link from "next/link";
-import { ArrowLeft, Calendar, ExternalLink } from "lucide-react";
+'use client';
 
-interface PageProps {
-  params: Promise<{ id: string }>;
-}
+import { useEffect, useState } from 'react';
+import { notFound, useParams } from 'next/navigation';
+import { api, Activity } from '@/lib/api';
+import Section from '@/components/ui/Section';
+import Link from 'next/link';
+import { ArrowLeft, Calendar, ArrowUpRight } from 'lucide-react';
 
-export async function generateStaticParams() {
-  return activities.map((activity) => ({
-    id: activity.id,
-  }));
-}
+export default function ActivityDetailPage() {
+  const { id } = useParams();
+  const [activity, setActivity] = useState<Activity | null>(null);
+  const [loading, setLoading] = useState(true);
 
-export default async function ActivityDetailPage(props: PageProps) {
-  const params = await props.params;
-  const activity = activities.find((a) => a.id === params.id);
+  useEffect(() => {
+    const fetchActivity = async () => {
+      try {
+        const activities = await api.getActivities();
+        const found = activities.find(a => a.ID.toString() === id);
+        if (found) {
+          setActivity(found);
+        } else {
+            // If API supports getById, use that. For now, filter from list if getById not available public
+            // Assuming getActivities returns all recent activities.
+            // Ideally backend should have getById public endpoint.
+        }
+      } catch (error) {
+        console.error('Failed to fetch activity', error);
+      } finally {
+        setLoading(false);
+      }
+    };
 
-  if (!activity) {
-    notFound();
-  }
+    if (id) fetchActivity();
+  }, [id]);
+
+  if (loading) return <div className="min-h-screen pt-24 text-center">Loading...</div>;
+  if (!activity) return notFound();
 
   const formattedDate = new Date(activity.date).toLocaleDateString('en-US', {
-    weekday: 'long',
     month: 'long',
-    day: 'numeric',
-    year: 'numeric'
+    year: 'numeric',
+    day: 'numeric'
   });
 
   return (
-    <Section className="max-w-4xl">
-      <Link 
-        href="/activities"
-        className="inline-flex items-center text-muted-foreground hover:text-primary mb-8 transition-colors group"
-      >
-        <ArrowLeft className="w-4 h-4 mr-2 group-hover:-translate-x-1 transition-transform" />
-        Back to Activities
-      </Link>
-
-      <div className="space-y-6">
-        <div className="space-y-4">
-          <div className="flex items-center gap-4 text-sm">
-            <span className="px-3 py-1 rounded-full bg-primary/10 text-primary font-medium capitalize">
-              {activity.type}
-            </span>
-            <div className="flex items-center text-muted-foreground">
-              <Calendar className="w-4 h-4 mr-2" />
-              {formattedDate}
+    <Section>
+      <div className="max-w-3xl mx-auto">
+        <Link 
+          href="/activities"
+          className="inline-flex items-center text-muted-foreground hover:text-foreground mb-8 transition-colors"
+        >
+          <ArrowLeft className="mr-2 h-4 w-4" />
+          Back to Activities
+        </Link>
+        
+        <article>
+          <header className="mb-8">
+            <div className="flex items-center gap-4 text-sm text-muted-foreground mb-4">
+              <span className="px-2 py-0.5 rounded text-xs font-medium bg-secondary/10 text-secondary-foreground border border-secondary/20 capitalize">
+                {activity.type}
+              </span>
+              <div className="flex items-center">
+                <Calendar className="mr-2 h-4 w-4" />
+                <time dateTime={activity.date}>{formattedDate}</time>
+              </div>
             </div>
-          </div>
-          
-          <h1 className="text-4xl md:text-5xl font-bold text-foreground leading-tight">
-            {activity.title}
-          </h1>
-        </div>
+            
+            <h1 className="text-3xl md:text-4xl font-bold text-foreground mb-6">
+              {activity.title}
+            </h1>
 
-        <div className="prose prose-lg text-muted-foreground max-w-none">
-          <p className="lead">{activity.description}</p>
-          <div className="bg-gray-50 border border-border rounded-xl p-8 my-8 text-center italic">
-             More detailed content for this activity is coming soon.
-          </div>
-        </div>
+            {activity.link && (
+               <a 
+                href={activity.link} 
+                target="_blank" 
+                rel="noopener noreferrer"
+                className="inline-flex items-center text-primary hover:underline font-medium"
+              >
+                Visit Link <ArrowUpRight className="ml-1 h-4 w-4" />
+              </a>
+            )}
+          </header>
 
-        {activity.link && (
-          <div className="pt-6 border-t border-border">
-            <Link 
-              href={activity.link}
-              target="_blank"
-              className="inline-flex items-center text-primary font-medium hover:underline text-lg"
-            >
-              View Original Source
-              <ExternalLink className="ml-2 h-5 w-5" />
-            </Link>
-          </div>
-        )}
+          <div 
+            className="prose dark:prose-invert max-w-none"
+            dangerouslySetInnerHTML={{ __html: activity.description }}
+          />
+        </article>
       </div>
     </Section>
   );

@@ -1,15 +1,37 @@
+'use client';
 import Hero from "@/components/sections/Hero";
 import ProjectCard from "@/components/ui/ProjectCard";
 import ActivityItem from "@/components/ui/ActivityItem";
 import Section from "@/components/ui/Section";
-import { projects } from "@/data/projects";
-import { activities } from "@/data/activities";
-import { ArrowRight } from "lucide-react";
+import { api, Project, Activity } from "@/lib/api";
+import { ArrowRight, Loader2 } from "lucide-react";
 import Link from "next/link";
+import { useEffect, useState } from "react";
 
 export default function Home() {
-  const featuredProjects = projects.filter(p => p.featured).slice(0, 2);
-  const recentActivities = activities.slice(0, 3);
+  const [featuredProjects, setFeaturedProjects] = useState<Project[]>([]);
+  const [recentActivities, setRecentActivities] = useState<Activity[]>([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [projectsData, activitiesData] = await Promise.all([
+          api.getProjects(),
+          api.getActivities()
+        ]);
+        
+        setFeaturedProjects(projectsData.filter(p => p.is_featured).slice(0, 2));
+        setRecentActivities(activitiesData.slice(0, 3));
+      } catch (error) {
+        console.error("Failed to fetch homepage data", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchData();
+  }, []);
 
   return (
     <>
@@ -27,13 +49,24 @@ export default function Home() {
           </Link>
         </div>
         
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-          {featuredProjects.map((project) => (
-            <Link key={project.id} href={`/portfolio/${project.id}`}>
-              <ProjectCard project={project} />
-            </Link>
-          ))}
-        </div>
+        {loading ? (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+                {[1, 2].map(i => (
+                    <div key={i} className="h-[400px] w-full bg-gray-200 animate-pulse rounded-xl"></div>
+                ))}
+            </div>
+        ) : (
+             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+               {featuredProjects.map((project) => (
+                   <ProjectCard key={project.ID} project={project} detailHref={`/portfolio/${project.ID}`} />
+               ))}
+                {!loading && featuredProjects.length === 0 && (
+                  <div className="col-span-2 text-center py-10 text-muted-foreground">
+                    No featured projects found.
+                  </div>
+                )}
+             </div>
+        )}
         
         <div className="mt-8 md:hidden text-center">
           <Link href="/portfolio" className="inline-flex items-center text-primary font-medium hover:text-primary-dark transition-colors">
@@ -56,11 +89,22 @@ export default function Home() {
         </div>
         
         <div className="space-y-4">
-          {recentActivities.map((activity) => (
-            <Link key={activity.id} href={`/activities/${activity.id}`} className="block hover:bg-gray-50/50 transition-colors rounded-lg">
-              <ActivityItem activity={activity} />
-            </Link>
-          ))}
+          {loading ? (
+             [1, 2, 3].map(i => (
+                 <div key={i} className="h-24 w-full bg-gray-100 animate-pulse rounded-lg"></div>
+             ))
+          ) : (
+              recentActivities.map((activity) => (
+                <Link key={activity.ID} href={`/activities/${activity.ID}`} className="block hover:bg-gray-50/50 transition-colors rounded-lg">
+                  <ActivityItem activity={activity} />
+                </Link>
+              ))
+          )}
+           {!loading && recentActivities.length === 0 && (
+                <div className="text-center py-10 text-muted-foreground">
+                    No recent activities.
+                </div>
+           )}
         </div>
         
         <div className="mt-8 md:hidden text-center">

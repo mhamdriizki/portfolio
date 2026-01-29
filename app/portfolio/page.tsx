@@ -1,26 +1,54 @@
 'use client';
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import ProjectCard from "@/components/ui/ProjectCard";
 import Section from "@/components/ui/Section";
 import { projects } from "@/data/projects";
 import { Filter } from "lucide-react";
 import Link from "next/link";
+import { api } from "@/lib/api";
 
 export default function PortfolioPage() {
+  const [projects, setProjects] = useState<any[]>([]);
+  const [loading, setLoading] = useState(true);
   const [selectedTech, setSelectedTech] = useState<string>("All");
+
+  useEffect(() => {
+    const loadProjects = async () => {
+      try {
+        const data = await api.getProjects();
+        // Map API response to Component props format
+        const mapped = data.map(p => ({
+          id: p.ID,
+          title: p.title,
+          description: p.description,
+          techStack: p.tech_stack,
+          imageUrl: p.image_url,
+          demoUrl: p.demo_url,
+          repoUrl: p.repo_url,
+          featured: p.is_featured,
+        }));
+        setProjects(mapped);
+      } catch (e) {
+        console.error("Failed to load projects", e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    loadProjects();
+  }, []);
 
   // Extract unique tech stack for filter options
   const allTech = useMemo(() => {
     const techSet = new Set<string>();
-    projects.forEach(p => p.techStack.forEach(t => techSet.add(t)));
+    projects.forEach(p => p.techStack.forEach((t: string) => techSet.add(t)));
     return ["All", ...Array.from(techSet).sort()];
-  }, []);
+  }, [projects]);
 
   const filteredProjects = useMemo(() => {
     if (selectedTech === "All") return projects;
     return projects.filter(p => p.techStack.includes(selectedTech));
-  }, [selectedTech]);
+  }, [projects, selectedTech]);
 
   return (
     <Section>
@@ -53,13 +81,22 @@ export default function PortfolioPage() {
       </div>
       
       {/* Projects Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
-        {filteredProjects.map((project) => (
-          <Link key={project.id} href={`/portfolio/${project.id}`}>
-            <ProjectCard project={project} />
-          </Link>
-        ))}
-      </div>
+      {loading ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {/* Simple skeleton */}
+            {[1,2,3].map(i => (
+                <div key={i} className="h-64 bg-gray-100 dark:bg-neutral-900 rounded-xl animate-pulse"/>
+            ))}
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
+            {filteredProjects.map((project) => (
+            <Link key={project.id} href={`/portfolio/${project.id}`}>
+                <ProjectCard project={project} />
+            </Link>
+            ))}
+        </div>
+      )}
 
       {/* No Results Message */}
       {filteredProjects.length === 0 && (
